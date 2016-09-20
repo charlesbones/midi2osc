@@ -1,3 +1,6 @@
+import netP5.*;
+import oscP5.*;
+
 import themidibus.*;
 import controlP5.*;
 import java.util.*;
@@ -16,8 +19,21 @@ boolean blockX=false;
 boolean blockY=false;
 boolean bang01=false;
 boolean bang02=false;
+
+OscP5 oscP5;
+int[] oscLength;
+int[] value;
+int port=12345;
+
+Textfield[] address;
+Textlabel[] addressLength;
+Numberbox[] selectValue;
+Textlabel[] valueOsc;
+
 void setup() {
   size(600, 400); 
+
+  //GUI
 
   cp5=new ControlP5(this);
   cp5.addTab("OSC/MIDI");
@@ -98,8 +114,57 @@ void setup() {
   cp5.getController("midiOutPort").moveTo("Settings");
   cp5.getController("labelPort").moveTo("Settings");
   cp5.getController("instructions").moveTo("Settings");
+  oscLength=new int[5];
+  value=new int[5];
+  address= new Textfield[5];
+  addressLength= new Textlabel[5];
+  selectValue=new Numberbox[5];
+  valueOsc=new Textlabel[5];
+  for (int i=0; i<oscLength.length; i++) {
+    address[i]=cp5.addTextfield("address0"+i)
+      .setLabel("address 0"+i+" -  channel "+(i+7))
+      .setPosition(20, (i*40)+30)
+      .setAutoClear(false)
+      ;
+    oscLength[i]=0;
+    addressLength[i]=cp5.addLabel("Length "+i+": "+oscLength[i])
+      .setPosition(250, (i*40)+35);
+    
+    selectValue[i]=cp5.addNumberbox("value "+i)
+                      .setPosition(350, (i*40)+35)
+                      .setScrollSensitivity(1)
+                      .setMax(0)
+                      .setMin(0);
+    value[i]=0;
+    valueOsc[i]=cp5.addLabel("result "+i+": "+value[i])
+                    .setPosition(450, (i*40)+35);
+    
+    cp5.getController("address0"+i).moveTo("OSC/MIDI");
+    cp5.getController("Length "+i+": "+oscLength[i]).moveTo("OSC/MIDI");
+    cp5.getController("value "+i).moveTo("OSC/MIDI");
+    cp5.getController("result "+i+": "+value[i]).moveTo("OSC/MIDI");
+  }
+
+  cp5.addTextfield("OSCport")
+    .setLabel("OSC port")
+    .setPosition(400, 40)
+    .setText(""+port)
+    .setSize(100, 20);
+
+  cp5.addBang("connect")
+    .setPosition(520, 40)
+    .setSize(20, 20);
+
+  cp5.getController("OSCport").moveTo("Settings");
+  cp5.getController("connect").moveTo("Settings");
+
+  //MIDI
 
   myBus=new MidiBus(this, -1, 1);
+
+  //OSC
+
+  oscP5 = new OscP5(this, port);
 }
 void draw() {
   background(0);
@@ -139,12 +204,32 @@ void draw() {
       myBus.sendNoteOff(5, 127, 127);
     }
   }
+  
 }
 
 void controlEvent(ControlEvent theControlEvent) {
+  
+}
+void oscEvent(OscMessage theOscMessage) {
+  print("### received an osc message.");
+  print(" addrpattern: "+theOscMessage.addrPattern());
+  println(" typetag: "+theOscMessage.arguments().length);
+  for (int i=0; i<oscLength.length; i++) {
+    if (theOscMessage.checkAddrPattern(address[i].getText())==true) {
+      oscLength[i]=theOscMessage.arguments().length;
+      addressLength[i].setText("Length "+i+": "+oscLength[i]);
+      selectValue[i].setMax(oscLength[i]);
+      selectValue[i].setMin(1);
+      valueOsc[i].setText("result "+i+": "+theOscMessage.get(int(selectValue[i].getValue())).floatValue());
+    }
+  }
 }
 void midiOutPort() {
   myBus=new MidiBus(this, -1, int(cp5.get(ScrollableList.class, "midiOutPort").getValue()));
+}
+
+void connect() {
+  oscP5 = new OscP5(this, int(cp5.getController("OSCport").getStringValue()));
 }
 void delay(int time) {
   int current = millis();
