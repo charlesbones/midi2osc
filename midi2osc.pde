@@ -36,6 +36,8 @@ Textlabel[] resultMidi;
 float[] oscMidiNote;
 Textfield maxTextfield, minTextfield;
 int min=0, max=1;
+
+Textfield oscPort;
 void setup() {
   size(600, 400); 
 
@@ -92,7 +94,6 @@ void setup() {
 
   cp5.getController("sliderThree").getCaptionLabel().align(ControlP5.RIGHT, ControlP5.BOTTOM_OUTSIDE).setPaddingX(0);
 
-
   cp5.addSlider("sliderFour")
     .setLabel("slider 02 - Channel 6")
     .setPosition(350, 150)
@@ -148,8 +149,8 @@ void setup() {
       .setMin(0);
     value[i]=0;
     valueOsc[i]=cp5.addLabel("raw "+i+": "+value[i])
-      .setPosition(380, (i*40)+35);
-    valueOsc[i]=cp5.addLabel("result "+i+": "+int(oscMidiNote[i]))
+      .setPosition(350, (i*40)+35);
+    resultMidi[i]=cp5.addLabel("result "+i+": "+int(oscMidiNote[i]))
       .setPosition(450, (i*40)+35);
     blockOsc[i]=cp5.addToggle("block "+i)
       .setPosition(550, (i*40)+35)
@@ -175,7 +176,7 @@ void setup() {
   cp5.getController("minimum value").moveTo("OSC/MIDI");
   cp5.getController("maximum value").moveTo("OSC/MIDI");
 
-  cp5.addTextfield("OSCport")
+  oscPort=cp5.addTextfield("OSCport")
     .setLabel("OSC port")
     .setPosition(400, 40)
     .setText(""+port)
@@ -262,7 +263,7 @@ void midiOutPort() {
 }
 
 void connect() {
-  oscP5 = new OscP5(this, int(cp5.getController("OSCport").getStringValue()));
+  oscP5 = new OscP5(this, int(oscPort.getText()));
 }
 void delay(int time) {
   int current = millis();
