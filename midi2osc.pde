@@ -29,7 +29,7 @@ Textfield[] address;
 Textlabel[] addressLength;
 Numberbox[] selectValue;
 Textlabel[] valueOsc;
-
+Toggle[] blockOsc;
 void setup() {
   size(600, 400); 
 
@@ -120,6 +120,7 @@ void setup() {
   addressLength= new Textlabel[5];
   selectValue=new Numberbox[5];
   valueOsc=new Textlabel[5];
+  blockOsc=new Toggle[5];
   for (int i=0; i<oscLength.length; i++) {
     address[i]=cp5.addTextfield("address0"+i)
       .setLabel("address 0"+i+" -  channel "+(i+7))
@@ -129,20 +130,25 @@ void setup() {
     oscLength[i]=0;
     addressLength[i]=cp5.addLabel("Length "+i+": "+oscLength[i])
       .setPosition(250, (i*40)+35);
-    
+
     selectValue[i]=cp5.addNumberbox("value "+i)
-                      .setPosition(350, (i*40)+35)
-                      .setScrollSensitivity(1)
-                      .setMax(0)
-                      .setMin(0);
+      .setPosition(350, (i*40)+35)
+      .setScrollSensitivity(1)
+      .setMax(0)
+      .setMin(0);
     value[i]=0;
     valueOsc[i]=cp5.addLabel("result "+i+": "+value[i])
-                    .setPosition(450, (i*40)+35);
-    
+      .setPosition(450, (i*40)+35);
+    blockOsc[i]=cp5.addToggle("block "+i)
+      .setPosition(550, (i*40)+35)
+      .setSize(20, 20)
+      .setValue(true);
+
     cp5.getController("address0"+i).moveTo("OSC/MIDI");
     cp5.getController("Length "+i+": "+oscLength[i]).moveTo("OSC/MIDI");
     cp5.getController("value "+i).moveTo("OSC/MIDI");
     cp5.getController("result "+i+": "+value[i]).moveTo("OSC/MIDI");
+    cp5.getController("block "+i).moveTo("OSC/MIDI");
   }
 
   cp5.addTextfield("OSCport")
@@ -204,23 +210,24 @@ void draw() {
       myBus.sendNoteOff(5, 127, 127);
     }
   }
-  
 }
 
 void controlEvent(ControlEvent theControlEvent) {
-  
 }
 void oscEvent(OscMessage theOscMessage) {
   print("### received an osc message.");
   print(" addrpattern: "+theOscMessage.addrPattern());
-  println(" typetag: "+theOscMessage.arguments().length);
+  println(" typetag: "+theOscMessage.typetag());
   for (int i=0; i<oscLength.length; i++) {
     if (theOscMessage.checkAddrPattern(address[i].getText())==true) {
       oscLength[i]=theOscMessage.arguments().length;
       addressLength[i].setText("Length "+i+": "+oscLength[i]);
-      selectValue[i].setMax(oscLength[i]);
-      selectValue[i].setMin(1);
+      selectValue[i].setMax(oscLength[i]-1);
+      selectValue[i].setMin(0);
       valueOsc[i].setText("result "+i+": "+theOscMessage.get(int(selectValue[i].getValue())).floatValue());
+      if (blockOsc[i].getValue()==0) {
+        myBus.sendNoteOn(i+7, int(theOscMessage.get(int(selectValue[i].getValue())).floatValue()), 127);
+      }
     }
   }
 }
